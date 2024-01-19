@@ -7,12 +7,13 @@ import type { TransformedEntry } from '../utils/transform';
 
 export default () => ({
   getLocalizationData,
-  getMainEntity,
-  fillInLocalizationAttributes,
+  getMainLocalizationId,
+  getMainLocalization,
+  fillInLocalizationAttributes: fillInLocalizedAttributes,
 });
 
-function getLocalizationData(uid: ContentTypeUID, entityId: number) {
-  return strapi.entityService.findOne(uid, entityId, {
+function getLocalizationData(contentType: ContentType, entityId: number) {
+  return strapi.entityService.findOne(contentType.uid, entityId, {
     fields: ['locale'],
     populate: {
       // @ts-ignore: Content-Type types cannot be used by plugins.
@@ -23,53 +24,41 @@ function getLocalizationData(uid: ContentTypeUID, entityId: number) {
   });
 }
 
-async function getMainEntity(
-  uid: ContentTypeUID,
-  entity: { localizations: EntityService.Entity[] },
+async function getMainLocalizationId(localizations: EntityService.Entity[]) {
+  const defaultLocale = await strapi.service('plugin::i18n.locales').getDefaultLocale();
+
+  const { id } = localizations.find((loc: any) => loc.locale === defaultLocale) || {};
+  return id;
+}
+
+async function getMainLocalization(
+  contentType: ContentType,
+  localizations: EntityService.Entity[],
   params: StrapiEntityService.Params.Pick<
     ContentTypeUID,
     'fields' | 'populate' | 'filters'
   > = {}
 ) {
-  const localizations = _.get(entity, 'localizations');
-  if (!entity.localizations) {
-    throw new Error(
-      'The Entity passed to getMainEntity() must have a populated localizations field.'
-    );
-  }
-
-  const defaultLocale = await strapi.service('plugin::i18n.locales').getDefaultLocale();
-
-  const { id: mainEntityId } =
-    localizations.find((loc: any) => loc.locale === defaultLocale) || {};
-  if (!mainEntityId) return null;
-
-  return strapi.entityService.findOne(uid, mainEntityId, params);
+  const mainLocaleId = await getMainLocalizationId(localizations);
+  return strapi.entityService.findOne(contentType.uid, mainLocaleId, params);
 }
 
 async function getLocalization(
   contentType: ContentType,
-  entity: { localizations: EntityService.Entity[] },
+  localizations: EntityService.Entity[],
   targetLocale: string,
   params: StrapiEntityService.Params.Pick<
     ContentTypeUID,
     'fields' | 'populate' | 'filters'
   > = {}
 ) {
-  const localizations = _.get(entity, 'localizations');
-  if (!entity.localizations) {
-    throw new Error(
-      'The Entity passed to getLocalizations() must have a populated localizations field.'
-    );
-  }
-
   const { id } = localizations.find((loc: any) => loc.locale === targetLocale) || {};
   if (!id) return null;
 
   return strapi.entityService.findOne(contentType.uid, id, params);
 }
 
-async function fillInLocalizationAttributes(
+async function fillInLocalizedAttributes(
   contentType: ContentType,
   data: TransformedEntry | TransformedEntry[],
   targetLocale: string,
@@ -77,7 +66,7 @@ async function fillInLocalizationAttributes(
 ) {
   if (_.isArray(data)) {
     for (const entity of data) {
-      await fillInLocalizationAttributes(contentType, entity, targetLocale, populate);
+      await fillInLocalizedAttributes(contentType, entity, targetLocale, populate);
     }
     return;
   } else if (!_.isObject(data)) {
@@ -89,30 +78,30 @@ async function fillInLocalizationAttributes(
   const { attributes } = data;
 
   const { locale, localizations } = await getLocalizationData(
-    contentType.uid,
+    contentType,
     Number(data.id)
   );
-  if (locale !== targetLocale && localizations?.length) {
-    const localizedAttrNames = strapi
-      .service('plugin::i18n.content-types')
-      .getLocalizedAttributes(contentType)
-      .filter((attrName) => attributes[attrName]);
-    localizedAttrNames.push('locale');
+  if (locale === targetLocale || _.isEmpty(localizations)) return;
 
-    const localizedEntity = await getLocalization(
-      contentType,
-      { localizations },
-      targetLocale,
-      { populate }
-    );
-    if (localizedEntity) {
-      _.set(data, 'id', localizedEntity.id);
-    }
+  const localizedAttrNames: string[] = strapi
+    .service('plugin::i18n.content-types')
+    .getLocalizedAttributes(contentType)
+    .filter((attrName) => attributes[attrName]);
+  localizedAttrNames.push('locale');
 
-    for (const attrName of localizedAttrNames) {
-      const localizedValue = localizedEntity?.[attrName];
-      if (!localizedValue) continue;
-      _.set(data, `attributes.${attrName}`, localizedValue);
-    }
+  const localizedEntity = await getLocalization(
+    contentType,
+    localizations,
+    targetLocale,
+    { populate }
+  );
+  if (localizedEntity) {
+    _.set(data, 'id', localizedEntity.id);
+  }
+
+  for (const attrName of localizedAttrNames) {
+    const localizedValue = localizedEntity?.[attrName];
+    if (!localizedValue) continue;
+    _.set(data, `attributes.${attrName}`, localizedValue);
   }
 }

@@ -4,37 +4,32 @@ import entities from '../services/entities';
 import contentTypes from '../services/contentTypes';
 import { sanitize } from '@strapi/utils';
 import { transformResponse } from '../utils/transform';
-import type { ResponseData } from './index.d';
 import type { ContentType } from '@strapi/types/dist/types/core/schemas';
 import type { EntityService } from '../services/index.d';
+import type { TransformedEntry } from '../utils/transform';
 
 export default () => {
   return async (ctx: any, next: () => Promise<any>) => {
-    const targetLocaleId = await requests().getTargetLocaleId(ctx);
-    if (targetLocaleId) {
-      _.set(ctx, 'request.params.id', targetLocaleId);
-    }
-
     await next();
 
-    const data = _.get(ctx, 'response.body.data') as
-      | ResponseData
-      | ResponseData[]
-      | undefined;
+    const data = _.get(ctx, 'response.body.data', []) as
+      | TransformedEntry
+      | TransformedEntry[];
+    if (!data || _.isEmpty(data)) return;
+
     const contentType = requests().getContentTypeFromCtx(ctx);
-    if (!data || !contentType) return;
-    await presentAsMainEntity(data as any, ctx.query.populate, contentType);
+    await presentAsMainLocalization(data, ctx.query.populate, contentType);
   };
 };
 
-async function presentAsMainEntity(
-  data: ResponseData,
+async function presentAsMainLocalization(
+  data: TransformedEntry | TransformedEntry[],
   populate: any,
   contentType: ContentType
 ) {
   if (_.isArray(data)) {
     for (const entry of data) {
-      await presentAsMainEntity(entry, populate, contentType);
+      await presentAsMainLocalization(entry, populate, contentType);
     }
     return;
   }
@@ -42,33 +37,38 @@ async function presentAsMainEntity(
   const { attributes } = data;
   if (!attributes) return;
 
+  // Get records of relation attribute-names and their target content-types.
   const relationAttrTargets = contentTypes().getRelationTargets(contentType);
   Object.keys(relationAttrTargets).forEach((attrName) => {
     if (attributes[attrName]) return;
     delete relationAttrTargets[attrName];
   });
 
+  // Get localization data of the current entity.
   const { locale, localizations } =
     ((await entities().getLocalizationData(
-      contentType.uid,
-      data.id
+      contentType,
+      Number(data.id)
     )) as EntityService.Entity) || {};
+
   if (locale && localizations?.length) {
-    const mainEntity = await entities().getMainEntity(
-      contentType.uid,
-      { localizations },
+    // Get main localization of the current entity
+    const mainLocalization = await entities().getMainLocalization(
+      contentType,
+      localizations,
       {
         fields: ['id'],
         populate,
       }
     );
 
-    if (mainEntity) {
-      _.set(data, 'id', mainEntity.id);
+    // Fill in the main localization's id and relation attributes.
+    if (mainLocalization) {
+      _.set(data, 'id', mainLocalization.id);
 
       for (const [attrName, targetContentType] of Object.entries(relationAttrTargets)) {
         const relationValue = await sanitize.contentAPI.output(
-          mainEntity[attrName],
+          mainLocalization[attrName],
           targetContentType
         );
         if (!relationValue) continue;
@@ -82,9 +82,12 @@ async function presentAsMainEntity(
     }
   }
 
+  /*
+   Localize relation attributes that were possibly filled in by the previous step, and have the main locale as their value.
+   Then call this function recursively on the localized relation attributes.
+  */
   for (const [attrName, targetContentType] of Object.entries(relationAttrTargets)) {
     const relationData = _.get(data, `attributes.${attrName}.data`);
-    console.log(attrName, relationData);
     if (!relationData) continue;
 
     const relationPopulate = _.get(populate, `${attrName}.populate`);
@@ -94,6 +97,6 @@ async function presentAsMainEntity(
       locale,
       relationPopulate
     );
-    await presentAsMainEntity(relationData, relationPopulate, targetContentType);
+    await presentAsMainLocalization(relationData, relationPopulate, targetContentType);
   }
 }

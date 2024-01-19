@@ -1,4 +1,4 @@
-import keepMainIdentity from './keepMainIdentity';
+import keepMainIdentity from './changeLocalizationPresentation';
 
 export default {
   keepMainIdentity,

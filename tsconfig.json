@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "rootDir": "./",
+    "outDir": "./dist",
+    "target": "esnext",
+    "module": "commonjs",
+    "jsx": "react",
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "incremental": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true
+  },
+
+  "include": [
+    "./server/**/*",
+    "./admin/**/*",
+    "./strapi-server.*",
+    "./strapi-admin.*"
+  ],
+ 
+  "exclude": [
+    "./node_modules/**/*",
+    "./dist/**/*",
+  ]
+}

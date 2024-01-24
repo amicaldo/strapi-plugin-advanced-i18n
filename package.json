@@ -29,12 +29,8 @@
   },
   "scripts": {
     "develop": "tsc -p tsconfig.json -w",
-    "build": "tsc -p tsconfig.json"
+    "build": "tsc -p tsconfig.json && cp ./README.md ./dist",
+    "publish": "cd ./dist && npm publish --access public && cd .."
   },
-  "license": "MIT",
-  "files": [
-    "dist",
-    "package-lock.json",
-    "package.json"
-  ]
+  "license": "MIT"
 }

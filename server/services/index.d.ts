@@ -5,3 +5,14 @@ export namespace EntityService {
     localizations?: Entity[];
   }
 }
+
+export namespace DatabaseService {
+  export type RelationFieldInput =
+    | {
+        connect: number | number[];
+      }
+    | {
+        id: number;
+      }
+    | number;
+}

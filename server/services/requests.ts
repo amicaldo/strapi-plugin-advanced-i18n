@@ -5,7 +5,8 @@ import type { ContentType } from '@strapi/types/dist/types/core/schemas';
 export default () => ({
   getContentTypeFromCtx,
   getTargetLocaleId,
-  //getMainLocaleId,
+  getMainLocaleIdFromCtx,
+  getMainLocaleFromCtx,
 });
 
 function getContentTypeFromCtx(ctx: any): ContentType | undefined {
@@ -31,19 +32,28 @@ async function getTargetLocaleId(ctx: any): Promise<number | null> {
   return Number(targetId) || null;
 }
 
-/*
-async function getMainLocaleId(ctx: any): Promise<unknown | null> {
+async function getMainLocaleIdFromCtx(ctx: any) {
   const id = _.get(ctx, 'request.params.id');
   if (!id) return null;
 
   const contentType = getContentTypeFromCtx(ctx);
   if (!contentType) return null;
 
-  const { localizations } = await entities().getLocalizationData(cont, Number(id));
+  const { localizations } = await entities().getLocalizationData(contentType, Number(id));
   if (!localizations) return null;
 
-  const { id: localeId } =
-    (await entities().getMainEntity(uid, { localizations }, { fields: ['id'] })) || {};
-  return localeId;
+  return entities().getMainLocalizationId(localizations);
 }
-*/
+
+async function getMainLocaleFromCtx(ctx: any, params: any = {}): Promise<unknown | null> {
+  const id = _.get(ctx, 'request.params.id');
+  if (!id) return null;
+
+  const contentType = getContentTypeFromCtx(ctx);
+  if (!contentType) return null;
+
+  const { localizations } = await entities().getLocalizationData(contentType, Number(id));
+  if (!localizations) return null;
+
+  return entities().getMainLocalization(contentType, localizations, params);
+}

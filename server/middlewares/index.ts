@@ -1,5 +1,7 @@
-import keepMainIdentity from './changeLocalizationPresentation';
+import allowSingleLocaleQuery from './allowSingleLocaleQuery';
+import changeLocalizationPresentation from './changeLocalizationPresentation';
 
 export default {
-  keepMainIdentity,
+  allowSingleLocaleQuery,
+  changeLocalizationPresentation,
 };

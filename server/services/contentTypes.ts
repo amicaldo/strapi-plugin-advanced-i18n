@@ -8,7 +8,8 @@ export default () => ({
 function getRelationTargets(contentType: ContentType) {
   const { attributes } = contentType;
   const relationAttrNames = Object.keys(attributes).filter(
-    (attrName) => attributes[attrName]?.type === 'relation'
+    (attrName) =>
+      attributes[attrName]?.type === 'relation' && attrName !== 'localizations'
   );
 
   const relationAttrTargets: Record<string, ContentType> = {};

@@ -12,8 +12,8 @@ export default () => ({
   fillInLocalizationAttributes: fillInLocalizedAttributes,
 });
 
-function getLocalizationData(contentType: ContentType, entityId: number) {
-  return strapi.entityService.findOne(contentType.uid, entityId, {
+async function getLocalizationData(contentType: ContentType, entityId: number) {
+  const params = {
     fields: ['locale'],
     populate: {
       // @ts-ignore: Content-Type types cannot be used by plugins.
@@ -21,7 +21,9 @@ function getLocalizationData(contentType: ContentType, entityId: number) {
         fields: ['id', 'locale'],
       },
     },
-  });
+  };
+
+  return strapi.entityService.findOne(contentType.uid, entityId, params as any);
 }
 
 async function getMainLocalizationId(localizations: EntityService.Entity[]) {
@@ -40,6 +42,7 @@ async function getMainLocalization(
   > = {}
 ) {
   const mainLocaleId = await getMainLocalizationId(localizations);
+  if (!mainLocaleId) return null;
   return strapi.entityService.findOne(contentType.uid, mainLocaleId, params);
 }
 

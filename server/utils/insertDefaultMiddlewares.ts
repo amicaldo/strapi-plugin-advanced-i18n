@@ -1,7 +1,10 @@
 import { Common } from '@strapi/types/dist/types/core';
 import pluginId from '../../utils/pluginId';
 
-const middlewares = [`plugin::${pluginId}.keepMainIdentity`];
+const middlewares = [
+  `plugin::${pluginId}.allowSingleLocaleQuery`,
+  `plugin::${pluginId}.changeLocalizationPresentation`,
+];
 
 export default function insertDefaultMiddlewares() {
   const routes = getApiRoutes();

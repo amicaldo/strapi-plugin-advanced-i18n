@@ -7,10 +7,14 @@ export default () => ({
 
 function getRelationTargets(contentType: ContentType) {
   const { attributes } = contentType;
-  const relationAttrNames = Object.keys(attributes).filter(
-    (attrName) =>
-      attributes[attrName]?.type === 'relation' && attrName !== 'localizations'
-  );
+  const relationAttrNames = Object.keys(attributes).filter((attrName) => {
+    const attribute = attributes[attrName];
+    return (
+      isAttributeAllowed(attribute) &&
+      attribute.type === 'relation' &&
+      attrName !== 'localizations'
+    );
+  });
 
   const relationAttrTargets: Record<string, ContentType> = {};
   for (const attrName of relationAttrNames) {
@@ -23,4 +27,8 @@ function getRelationTargets(contentType: ContentType) {
   }
 
   return relationAttrTargets;
+}
+
+function isAttributeAllowed(attribute: any) {
+  return _.get(attribute, 'pluginOptions.advanced-i18n') !== false;
 }

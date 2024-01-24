@@ -34,7 +34,7 @@ async function presentAsMainLocalization(
     return;
   }
 
-  const { attributes } = data;
+  const attributes = _.get(data, 'attributes');
   if (!attributes) return;
 
   // Get records of relation attribute-names and their target content-types.

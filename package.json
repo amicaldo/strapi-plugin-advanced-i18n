@@ -1,6 +1,6 @@
 {
   "name": "@amicaldo/strapi-plugin-advanced-i18n",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "strapi": {
     "name": "advanced-i18n",
     "displayName": "Advanced i18n",

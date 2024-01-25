@@ -2,6 +2,7 @@ import { Common } from '@strapi/types/dist/types/core';
 import pluginId from '../../utils/pluginId';
 
 const middlewares = [
+  `plugin::${pluginId}.rootLocalization`,
   `plugin::${pluginId}.allowSingleLocaleQuery`,
   `plugin::${pluginId}.changeLocalizationPresentation`,
 ];

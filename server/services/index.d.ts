@@ -7,6 +7,11 @@ export namespace EntityService {
 }
 
 export namespace DatabaseService {
+  export interface EventInfo {
+    contentType: ContentType;
+    targetIds: number[];
+  }
+
   export type RelationFieldInput =
     | {
         connect: number | number[];

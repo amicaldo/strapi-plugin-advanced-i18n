@@ -24,7 +24,7 @@ async function getEventInfo(event: Event) {
     targetIds: _.isArray(preQueryResult)
       ? preQueryResult.map(({ id }) => id)
       : [preQueryResult?.id],
-  };
+  } as DatabaseService.EventInfo;
 }
 
 function getIdsToConnect(

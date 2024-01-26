@@ -7,9 +7,10 @@ import type { TransformedEntry } from '../utils/transform';
 
 export default () => ({
   getLocalizationData,
+  getLocalization,
   getMainLocalizationId,
   getMainLocalization,
-  fillInLocalizationAttributes: fillInLocalizedAttributes,
+  fillInLocalizedAttributes,
 });
 
 async function getLocalizationData(contentType: ContentType, entityId: number) {

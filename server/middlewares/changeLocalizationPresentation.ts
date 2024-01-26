@@ -18,18 +18,24 @@ export default () => {
     if (!data || _.isEmpty(data)) return;
 
     const contentType = requests().getContentTypeFromCtx(ctx);
-    await presentAsMainLocalization(data, ctx.query.populate, contentType);
+    await presentAsMainLocalization(
+      data,
+      ctx.query.populate,
+      ctx.query.locale,
+      contentType
+    );
   };
 };
 
 async function presentAsMainLocalization(
   data: TransformedEntry | TransformedEntry[],
   populate: any,
+  targetLocale: string,
   contentType: ContentType
 ) {
   if (_.isArray(data)) {
     for (const entry of data) {
-      await presentAsMainLocalization(entry, populate, contentType);
+      await presentAsMainLocalization(entry, populate, targetLocale, contentType);
     }
     return;
   }
@@ -91,12 +97,17 @@ async function presentAsMainLocalization(
     if (!relationData) continue;
 
     const relationPopulate = _.get(populate, `${attrName}.populate`);
-    await entities().fillInLocalizationAttributes(
+    await entities().fillInLocalizedAttributes(
       targetContentType,
       relationData,
-      locale,
+      targetLocale,
       relationPopulate
     );
-    await presentAsMainLocalization(relationData, relationPopulate, targetContentType);
+    await presentAsMainLocalization(
+      relationData,
+      relationPopulate,
+      targetLocale,
+      targetContentType
+    );
   }
 }

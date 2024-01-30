@@ -5,8 +5,6 @@ import database from '../../services/database';
 import type { Subscriber } from '@strapi/database/dist/lifecycles';
 
 const subscriber: Subscriber = async (event) => {
-  if (!event.model.uid.startsWith('api::')) return;
-
   const { action } = event;
   if (!action.startsWith('beforeCreate') && !action.startsWith('beforeUpdate')) return;
 

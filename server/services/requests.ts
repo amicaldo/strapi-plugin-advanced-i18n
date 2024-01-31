@@ -33,7 +33,7 @@ async function getTargetLocaleId(ctx: any): Promise<number | null> {
 }
 
 async function getMainLocaleIdFromCtx(ctx: any) {
-  const id = _.get(ctx, 'request.params.id');
+  const id = _.get(ctx, 'params.id');
   if (!id) return null;
 
   const contentType = getContentTypeFromCtx(ctx);
@@ -46,7 +46,7 @@ async function getMainLocaleIdFromCtx(ctx: any) {
 }
 
 async function getMainLocaleFromCtx(ctx: any, params: any = {}): Promise<unknown | null> {
-  const id = _.get(ctx, 'request.params.id');
+  const id = _.get(ctx, 'params.id');
   if (!id) return null;
 
   const contentType = getContentTypeFromCtx(ctx);

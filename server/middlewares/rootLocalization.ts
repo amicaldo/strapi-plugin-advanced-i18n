@@ -6,7 +6,6 @@ import type { TransformedEntry } from '../utils/transform';
 export default () => {
   return async (ctx: any, next: () => Promise<any>) => {
     await next();
-
     const data = _.get(ctx, 'response.body.data', []) as
       | TransformedEntry
       | TransformedEntry[];

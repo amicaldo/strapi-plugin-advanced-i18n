@@ -50,40 +50,43 @@ async function presentAsMainLocalization(
     delete relationAttrTargets[attrName];
   });
 
-  // Get localization data of the current entity.
-  const { locale, localizations } =
-    ((await entities().getLocalizationData(
-      contentType,
-      Number(data.id)
-    )) as EntityService.Entity) || {};
-
-  if (locale && localizations?.length) {
-    // Get main localization of the current entity
-    const mainLocalization = await entities().getMainLocalization(
-      contentType,
-      localizations,
-      {
-        fields: ['id'],
-        populate,
-      }
-    );
-
-    // Fill in the main localization's id and relation attributes.
-    if (mainLocalization) {
-      _.set(data, 'id', mainLocalization.id);
-
-      for (const [attrName, targetContentType] of Object.entries(relationAttrTargets)) {
-        const relationValue = await sanitize.contentAPI.output(
-          mainLocalization[attrName],
-          targetContentType
-        );
-        if (!relationValue) continue;
-        const relationResponse = transformResponse(relationValue, undefined, {
-          contentType: targetContentType,
-        });
-        delete relationResponse['meta'];
-
-        _.set(data, `attributes.${attrName}`, relationResponse);
+  const isLocalized = strapi.service("plugin::i18n.content-types").isLocalizedContentType(contentType);
+  if (isLocalized) {
+    // Get localization data of the current entity.
+    const { locale, localizations } =
+      ((await entities().getLocalizationData(
+        contentType,
+        Number(data.id)
+      )) as EntityService.Entity) || {};
+      
+    if (locale && localizations?.length) {
+      // Get main localization of the current entity
+      const mainLocalization = await entities().getMainLocalization(
+        contentType,
+        localizations,
+        {
+          fields: ['id'],
+          populate,
+        }
+      );
+      
+      // Fill in the main localization's id and relation attributes.
+      if (mainLocalization) {
+        _.set(data, 'id', mainLocalization.id);
+      
+        for (const [attrName, targetContentType] of Object.entries(relationAttrTargets)) {
+          const relationValue = await sanitize.contentAPI.output(
+            mainLocalization[attrName],
+            targetContentType
+          );
+          if (!relationValue) continue;
+          const relationResponse = transformResponse(relationValue, undefined, {
+            contentType: targetContentType,
+          });
+          delete relationResponse['meta'];
+        
+          _.set(data, `attributes.${attrName}`, relationResponse);
+        }
       }
     }
   }

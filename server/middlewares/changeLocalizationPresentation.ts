@@ -1,18 +1,18 @@
-import _ from 'lodash';
-import requests from '../services/requests';
-import entities from '../services/entities';
-import contentTypes from '../services/contentTypes';
-import { sanitize } from '@strapi/utils';
-import { transformResponse } from '../utils/transform';
-import type { ContentType } from '@strapi/types/dist/types/core/schemas';
-import type { EntityService } from '../services/index.d';
-import type { TransformedEntry } from '../utils/transform';
+import _ from "lodash";
+import requests from "../services/requests";
+import entities from "../services/entities";
+import contentTypes from "../services/contentTypes";
+import { sanitize } from "@strapi/utils";
+import { transformResponse } from "../utils/transform";
+import type { ContentType } from "@strapi/types/dist/types/core/schemas";
+import type { EntityService } from "../services/index.d";
+import type { TransformedEntry } from "../utils/transform";
 
 export default () => {
   return async (ctx: any, next: () => Promise<any>) => {
     await next();
 
-    const data = _.get(ctx, 'response.body.data', []) as
+    const data = _.get(ctx, "response.body.data", []) as
       | TransformedEntry
       | TransformedEntry[];
     if (!data || _.isEmpty(data)) return;
@@ -35,12 +35,17 @@ async function presentAsMainLocalization(
 ) {
   if (_.isArray(data)) {
     for (const entry of data) {
-      await presentAsMainLocalization(entry, populate, targetLocale, contentType);
+      await presentAsMainLocalization(
+        entry,
+        populate,
+        targetLocale,
+        contentType
+      );
     }
     return;
   }
 
-  const attributes = _.get(data, 'attributes');
+  const attributes = _.get(data, "attributes");
   if (!attributes) return;
 
   // Get records of relation attribute-names and their target content-types.
@@ -50,7 +55,9 @@ async function presentAsMainLocalization(
     delete relationAttrTargets[attrName];
   });
 
-  const isLocalized = strapi.service("plugin::i18n.content-types").isLocalizedContentType(contentType);
+  const isLocalized = strapi
+    .service("plugin::i18n.content-types")
+    .isLocalizedContentType(contentType);
   if (isLocalized) {
     // Get localization data of the current entity.
     const { locale, localizations } =
@@ -58,23 +65,25 @@ async function presentAsMainLocalization(
         contentType,
         Number(data.id)
       )) as EntityService.Entity) || {};
-      
+
     if (locale && localizations?.length) {
       // Get main localization of the current entity
       const mainLocalization = await entities().getMainLocalization(
         contentType,
         localizations,
         {
-          fields: ['id'],
+          fields: ["id"],
           populate,
         }
       );
-      
+
       // Fill in the main localization's id and relation attributes.
       if (mainLocalization) {
-        _.set(data, 'id', mainLocalization.id);
-      
-        for (const [attrName, targetContentType] of Object.entries(relationAttrTargets)) {
+        _.set(data, "id", mainLocalization.id);
+
+        for (const [attrName, targetContentType] of Object.entries(
+          relationAttrTargets
+        )) {
           const relationValue = await sanitize.contentAPI.output(
             mainLocalization[attrName],
             targetContentType
@@ -83,8 +92,8 @@ async function presentAsMainLocalization(
           const relationResponse = transformResponse(relationValue, undefined, {
             contentType: targetContentType,
           });
-          delete relationResponse['meta'];
-        
+          delete relationResponse["meta"];
+
           _.set(data, `attributes.${attrName}`, relationResponse);
         }
       }
@@ -95,17 +104,26 @@ async function presentAsMainLocalization(
    Localize relation attributes that were possibly filled in by the previous step, and have the main locale as their value.
    Then call this function recursively on the localized relation attributes.
   */
-  for (const [attrName, targetContentType] of Object.entries(relationAttrTargets)) {
+  for (const [attrName, targetContentType] of Object.entries(
+    relationAttrTargets
+  )) {
     const relationData = _.get(data, `attributes.${attrName}.data`);
     if (!relationData) continue;
 
     const relationPopulate = _.get(populate, `${attrName}.populate`);
-    await entities().fillInLocalizedAttributes(
-      targetContentType,
-      relationData,
-      targetLocale,
-      relationPopulate
-    );
+
+    const isLocalized = strapi
+      .service("plugin::i18n.content-types")
+      .isLocalizedContentType(targetContentType);
+    if (isLocalized) {
+      await entities().fillInLocalizedAttributes(
+        targetContentType,
+        relationData,
+        targetLocale,
+        relationPopulate
+      );
+    }
+
     await presentAsMainLocalization(
       relationData,
       relationPopulate,

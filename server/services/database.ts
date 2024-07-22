@@ -4,7 +4,7 @@ import type { DatabaseService } from './index.d';
 
 export default () => ({
   getEventInfo,
-  getIdsToConnect,
+  getConnections,
 });
 
 async function getEventInfo(event: Event) {
@@ -14,10 +14,12 @@ async function getEventInfo(event: Event) {
   if (!contentType) return null;
 
   const preQueryAction = !action.endsWith('Many') ? 'findOne' : 'findMany';
-  const preQueryResult = await strapi.db.query(contentType.uid)[preQueryAction]({
-    where,
-    select: ['id'],
-  });
+  const preQueryResult = await strapi.db
+    .query(contentType.uid)
+    [preQueryAction]({
+      where,
+      select: ['id'],
+    });
 
   return {
     contentType,
@@ -27,24 +29,24 @@ async function getEventInfo(event: Event) {
   } as DatabaseService.EventInfo;
 }
 
-function getIdsToConnect(
+function getConnections(
   attrValue: DatabaseService.RelationFieldInput
-): number[] | undefined {
+): { id: number }[] | undefined {
   if (_.isArray(attrValue)) {
-    return attrValue.flatMap((v) => getIdsToConnect(v));
+    return attrValue.flatMap((v) => getConnections(v));
   }
 
   if (_.isFinite(attrValue)) {
-    return [attrValue as number];
+    return [{ id: attrValue as number }];
   }
 
   if (_.isObject(attrValue)) {
     if (_.has(attrValue, 'id')) {
-      return _.get(attrValue, 'id');
+      return [attrValue as { id: number }];
     }
 
     if (_.has(attrValue, 'connect')) {
-      return getIdsToConnect(_.get(attrValue, 'connect'));
+      return getConnections(_.get(attrValue, 'connect'));
     }
   }
 }

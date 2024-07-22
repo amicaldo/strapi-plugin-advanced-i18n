@@ -8,7 +8,8 @@ import type { DatabaseService, EntityService } from '../../services/index.d';
 
 const subscriber: Subscriber = async (event) => {
   const { action } = event;
-  if (!action.startsWith('beforeCreate') && !action.startsWith('beforeUpdate')) return;
+  if (!action.startsWith('beforeCreate') && !action.startsWith('beforeUpdate'))
+    return;
 
   const eventInfo = await database().getEventInfo(event);
   const contentType = _.get(eventInfo, 'contentType');
@@ -34,7 +35,9 @@ const subscriber: Subscriber = async (event) => {
   }
 
   if (action.startsWith('beforeUpdate')) {
-    operations.push(...(await handleUpdate(eventInfo, data, relationAttrNames)));
+    operations.push(
+      ...(await handleUpdate(eventInfo, data, relationAttrNames))
+    );
   }
 
   const success = !!(await Promise.all(operations)).find((result) => result);
@@ -59,17 +62,23 @@ async function handleCreation(
   const localizationsConnect = _.get(data, 'localizations', []);
   if (_.isEmpty(localizationsConnect)) return;
 
-  const localizationsConnectIds = database().getIdsToConnect(localizationsConnect) || [];
-  if (_.isEmpty(localizationsConnectIds)) return;
+  const parsedLocalizationConnections =
+    database().getConnections(localizationsConnect) || [];
+  if (_.isEmpty(parsedLocalizationConnections)) return;
 
   const localizationData = await entities().getLocalizationData(
     contentType,
-    _.first(localizationsConnectIds)
+    _.first(parsedLocalizationConnections).id
   );
   const localizations = _.get(localizationData, 'localizations', []);
   localizations.push(localizationData);
 
-  return setRelationsOnMain(contentType, localizations, data, relationAttrNames);
+  return setRelationsOnMain(
+    contentType,
+    localizations,
+    data,
+    relationAttrNames
+  );
 }
 
 async function handleUpdate(
@@ -84,7 +93,10 @@ async function handleUpdate(
   const operations = [];
 
   for (const id of targetIds) {
-    const localizationData = await entities().getLocalizationData(contentType, id);
+    const localizationData = await entities().getLocalizationData(
+      contentType,
+      id
+    );
     const localizations = _.get(localizationData, 'localizations', []);
 
     const operation = setRelationsOnMain(
@@ -105,7 +117,9 @@ async function setRelationsOnMain(
   data: any,
   relationAttrNames: string[]
 ) {
-  const mainLocalizationId = await entities().getMainLocalizationId(localizations);
+  const mainLocalizationId = await entities().getMainLocalizationId(
+    localizations
+  );
   if (!mainLocalizationId) return false;
 
   return strapi.entityService.update(contentType.uid, mainLocalizationId, {

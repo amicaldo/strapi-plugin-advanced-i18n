@@ -6,7 +6,8 @@ import type { Subscriber } from '@strapi/database/dist/lifecycles';
 
 const subscriber: Subscriber = async (event) => {
   const { action } = event;
-  if (!action.startsWith('beforeCreate') && !action.startsWith('beforeUpdate')) return;
+  if (!action.startsWith('beforeCreate') && !action.startsWith('beforeUpdate'))
+    return;
 
   const eventInfo = await database().getEventInfo(event);
   const contentType = _.get(eventInfo, 'contentType');
@@ -23,22 +24,29 @@ const subscriber: Subscriber = async (event) => {
       .isLocalizedContentType(target);
     if (!isLocalizedContentType || !_.has(data, attrName)) continue;
 
-    const idsToConnect = database().getIdsToConnect(_.get(data, attrName));
-    if (_.isEmpty(idsToConnect)) continue;
+    const connect = database().getConnections(_.get(data, attrName));
+    if (_.isEmpty(connect)) continue;
 
-    const newConnect: number[] = [];
+    const newConnect: { id: number }[] = [];
 
-    for (const id of idsToConnect) {
-      newConnect.push(id);
+    for (const connection of connect) {
+      newConnect.push(connection);
 
-      const { localizations } = await entities().getLocalizationData(target, id);
+      const { id, ...more } = connection;
+
+      const { localizations } = await entities().getLocalizationData(
+        target,
+        id
+      );
       if (_.isEmpty(localizations)) continue;
 
-      const mainLocalizationId = await entities().getMainLocalizationId(localizations);
+      const mainLocalizationId = await entities().getMainLocalizationId(
+        localizations
+      );
       if (!mainLocalizationId) continue;
 
       newConnect.pop();
-      newConnect.push(mainLocalizationId);
+      newConnect.push({ id, ...more });
     }
 
     const disconnect = _.get(data, `${attrName}.disconnect`);
